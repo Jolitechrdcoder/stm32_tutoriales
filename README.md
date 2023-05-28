@@ -23,4 +23,4 @@ Esperamos que encuentres útiles estos tutoriales y que te ayuden a adentrarte e
 
 ¡Feliz programación!
 
-Equipo de Tutoriales de Microcontroladores STM
+Equipo de MecatronicosRD
