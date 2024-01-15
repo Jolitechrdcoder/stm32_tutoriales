@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MQTT</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body { font-family: Arial,
+         sans-serif; 
+         background-color: #111;
+          margin: 0;
+           padding: 0;
+            overflow: hidden; 
+            position: relative;
+             color: #fff; 
+             }
+        .container { display: flex;
+         flex-wrap: wrap; 
+         justify-content: center;
+          align-items: center;
+           height: 100vh; 
+           }
+        .card { background-color: rgba(0, 0, 0, 0.8);
+         color: #fff; text-align: center;
+          padding: 20px;
+           margin: 20px;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+             border-radius: 30px;
+             width: 20%;
+              }
+        .card h2, .card p { 
+            margin: 10px 0;
+             }
+        .title { 
+            
+            text-align: center;
+         font-size: 24px;
+          margin: 20px; 
+          color: #fff;
+           text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            }
+        @media (max-width: 768px) { .card {
+             width: 80%;
+              margin: 5px;
+               overflow-y: visible; 
+               } 
+               }
+        #temperatureBar { height: 20px;
+         background-color: #3498db;
+          border-radius: 5px;
+           margin-top: 10px; 
+           width: 0;
+            transition: width 0.5s ease-in-out;
+             }
+    </style>
+</head>
+<body>
+    <h1 class="title">MQTT</h1>
+    <div class="container">
+        <div class="card" id="temperatureCard">
+            <i class="fas fa-thermometer-half" style="font-size: 24px; color: #fff;"></i>
+            <h2>Temperatura</h2>
+            <p>Temperatura actual: <span id="temperature">-- °C</span></p>
+            <div id="temperatureBar"></div>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+        const MAX_TEMPERATURE = 100;
+        const hostname = "mqtt-dashboard.com";
+        const port = 8884;
+        const clientId = `clientId-${new Date().getUTCMilliseconds()}`;
+        const username = "webclient";
+        const password = "Super$icher123";
+        const topic = "temp";
+        const mqttClient = new Paho.MQTT.Client(hostname, port, clientId);
+
+        mqttClient.onMessageArrived = MessageArrived;
+        mqttClient.onConnectionLost = ConnectionLost;
+        Connect();
+
+        function Connect() {
+            mqttClient.connect({
+                onSuccess: Connected,
+                onFailure: ConnectionFailed,
+                keepAliveInterval: 10,
+                userName: username,
+                useSSL: true,
+                password: password
+            });
+        }
+
+        function Connected() {
+            console.log("Connected");
+            mqttClient.subscribe(topic);
+        }
+
+        function ConnectionFailed(res) {
+            console.log(`Connect failed: ${res.errorMessage}`);
+        }
+
+        function ConnectionLost(res) {
+            if (res.errorCode !== 0) {
+                console.log(`Connection lost: ${res.errorMessage}`);
+                Connect();
+            }
+        }
+
+        function MessageArrived(message) {
+            console.log(`${message.destinationName}: ${message.payloadString}`);
+            const data = parseFloat(message.payloadString);
+
+            if (!isNaN(data)) {
+                const voltage = (data / 4095) * 5000;
+                const temperature = voltage / 10;
+                document.getElementById("temperature").textContent = `${temperature.toFixed(2)} °C`;
+                updateTemperatureBar(temperature);
+            }
+        }
+
+        function updateTemperatureBar(temperature) {
+            const temperatureBar = document.getElementById("temperatureBar");
+            const barWidth = (temperature / MAX_TEMPERATURE) * 100;
+            temperatureBar.style.width = `${barWidth}%`;
+
+            let color = temperature < 30 ? "#27ae60" : temperature < 60 ? "#f39c12" : "#e74c3c";
+            temperatureBar.style.backgroundColor = color;
+        }
+    </script>
+</body>
+</html>
